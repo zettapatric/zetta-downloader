@@ -1,8 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export interface YouTubeResult {
   id: string;
   title: string;
@@ -15,6 +13,8 @@ export interface YouTubeResult {
 
 export const searchYouTube = async (query: string): Promise<YouTubeResult[]> => {
   try {
+    // Initialize GoogleGenAI inside the function to ensure the correct API key is used.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Simulate a YouTube search response for the query: "${query}". Return a JSON array of 5 highly relevant music/video results.`,
@@ -39,6 +39,7 @@ export const searchYouTube = async (query: string): Promise<YouTubeResult[]> => 
       }
     });
 
+    // Directly access the text property of the response.
     return JSON.parse(response.text);
   } catch (error) {
     console.error("YouTube Search Simulation Error:", error);
@@ -48,6 +49,8 @@ export const searchYouTube = async (query: string): Promise<YouTubeResult[]> => 
 
 export const extractAudioMetadata = async (videoId: string) => {
   try {
+    // Initialize GoogleGenAI inside the function.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Simulate high-fidelity audio metadata extraction for YouTube video ID: ${videoId}. Provide technical details.`,
@@ -67,6 +70,7 @@ export const extractAudioMetadata = async (videoId: string) => {
         }
       }
     });
+    // Access text property directly.
     return JSON.parse(response.text);
   } catch (err) {
     return null;

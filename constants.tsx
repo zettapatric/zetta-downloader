@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-export const APP_NAME = "Zetta Downloader";
+export const APP_NAME = "Z Downloader";
 export const STORAGE_KEYS = {
   AUTH_TOKEN: 'zetta_token',
   USER_DATA: 'zetta_user',
@@ -18,7 +18,6 @@ export const Icons = {
   Admin: () => <i className="fa-solid fa-user-shield"></i>,
   Settings: () => <i className="fa-solid fa-gear"></i>,
   Logout: () => <i className="fa-solid fa-right-from-bracket"></i>,
-  // Fix: Redefine Favorite as a component to correctly handle 'filled' prop
   Favorite: ({ filled }: { filled?: boolean }) => <i className={`fa-${filled ? 'solid' : 'regular'} fa-heart ${filled ? 'text-red-500' : ''}`}></i>,
   Play: () => <i className="fa-solid fa-play"></i>,
   Pause: () => <i className="fa-solid fa-pause"></i>,

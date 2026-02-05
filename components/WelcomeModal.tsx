@@ -14,7 +14,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
         </div>
         
         <h2 className="text-4xl font-extrabold text-white mb-4 bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-          Welcome to Zetta Downloader!
+          Welcome to Z Downloader!
         </h2>
         
         <p className="text-slate-400 text-lg mb-10 leading-relaxed">
@@ -42,7 +42,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
           onClick={onClose}
           className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold text-lg transition-all shadow-xl shadow-blue-600/20 active:scale-[0.98]"
         >
-          Start Using Zetta Downloader
+          Start Using Z Downloader
         </button>
       </div>
     </div>

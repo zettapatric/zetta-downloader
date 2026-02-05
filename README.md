@@ -1,20 +1,32 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Run and deploy your AI Studio app
+# Z Downloader ⚡
 
-This contains everything you need to run your app locally.
+**Z Downloader** is a production-ready, SaaS-style web application designed for high-performance media extraction, organization, and playback. It specializes in the Rwandan music ecosystem while offering global compatibility for modern creators.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1Jg_WThFHnmVIHBpgZLfFKejxzm296Y7f
+## 🚀 Core Features
 
-## Run Locally
+- **Neural Extraction Engine**: Powered by Gemini AI for intelligent URL analysis and metadata tagging.
+- **Identity Registry**: Detailed profiles of top Rwandan artists (Bruce Melodie, Meddy, Ariel Wayz, etc.) with official terminal uplinks.
+- **Universal Downloader**: Support for TikTok, YouTube, Instagram, and more than 1,000 global sources.
+- **Audio Studio Suite**: Built-in format converters, tag editors, and audio trimmers.
+- **Secure Cloud Infrastructure**: Encrypted user sessions, audit protocols, and regional telemetry.
+- **Dynamic Theming**: Support for both Dark and Light luminance modes for optimal visibility.
 
-**Prerequisites:**  Node.js
+## 🛠️ Technical Stack
 
+- **Frontend**: React 19, TypeScript, Tailwind CSS
+- **Routing**: React Router 7 (Hash Mode for compatibility)
+- **Intelligence**: Google Gemini API (@google/genai)
+- **Architecture**: Glassmorphic UI with Atomic Design Principles
+- **Data Persistence**: LocalStorage with Session Recovery Protocol
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 📦 Getting Started
+
+1. **Uplink**: Use the login terminal to access your private node.
+2. **Extract**: Paste any media link into the Z Downloader terminal.
+3. **Organize**: Categorize your extractions into custom clusters (playlists).
+4. **Sync**: Use the Mobile Sync suite to distribute your media to external devices.
+
+---
+
+© 2024 Z MEDIA CLOUD INFRASTRUCTURE. ALL RIGHTS RESERVED.

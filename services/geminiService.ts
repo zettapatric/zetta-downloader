@@ -1,10 +1,12 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Use local instances of GoogleGenAI to ensure the most up-to-date API key is used.
 
 export const analyzeMediaUrl = async (url: string) => {
   try {
+    // Initializing GoogleGenAI inside the function to use process.env.API_KEY correctly.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Analyze this hypothetical media URL: ${url}. Provide metadata if it was a real media resource.`,
@@ -28,6 +30,7 @@ export const analyzeMediaUrl = async (url: string) => {
       }
     });
 
+    // Access text property directly as per Gemini API guidelines.
     return JSON.parse(response.text);
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
@@ -37,6 +40,8 @@ export const analyzeMediaUrl = async (url: string) => {
 
 export const suggestTags = async (title: string, artist: string) => {
   try {
+    // Initializing GoogleGenAI inside the function.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Suggest 5 music genres or tags for: ${title} by ${artist}`,
@@ -48,6 +53,7 @@ export const suggestTags = async (title: string, artist: string) => {
         }
       }
     });
+    // Access text property directly.
     return JSON.parse(response.text);
   } catch (error) {
     return ["Music", "Uncategorized"];

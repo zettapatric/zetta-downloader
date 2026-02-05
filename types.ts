@@ -1,8 +1,12 @@
 
 export enum UserRole {
   USER = 'USER',
-  ADMIN = 'ADMIN'
+  ADMIN = 'ADMIN',
+  MODERATOR = 'MODERATOR',
+  CONTENT_MANAGER = 'CONTENT_MANAGER'
 }
+
+export type GenreType = 'CHILL' | 'WORKOUT' | 'LOVE' | 'PARTY' | 'TIKTOK SOUNDS' | 'DJ PACKS' | 'REELS';
 
 export interface User {
   id: string;
@@ -11,23 +15,57 @@ export interface User {
   role: UserRole;
   avatar?: string;
   createdAt: string;
+  lastLogin?: string;
   plan: 'free' | 'pro' | 'premium';
   settings?: AppSettings;
+  status: 'active' | 'suspended';
+  affinity: Record<string, number>;
+  stats?: {
+    totalDownloads: number;
+    totalFavorites: number;
+  }
 }
 
 export interface MediaItem {
   id: string;
   title: string;
   artist: string;
-  duration: number; // in seconds
+  album?: string;
+  genre: GenreType;
+  year?: string;
+  duration: number;
   url: string;
   thumbnail: string;
   format: 'mp3' | 'mp4' | 'wav';
-  size: number; // in bytes
+  size: number;
   isFavorite: boolean;
+  isVisible: boolean;
   downloadDate: string;
-  tags?: string[];
-  source?: 'zetta' | 'youtube';
+  downloadCount: number;
+  favoriteCount: number;
+  playCount: number;
+  details?: string;
+}
+
+export interface Artist {
+  id: string;
+  name: string;
+  genre: string;
+  bio: string;
+  stats: string;
+  image: string;
+  officialLink: string;
+  socials?: { twitter?: string; instagram?: string; youtube?: string };
+}
+
+export interface NewsArticle {
+  id: string;
+  title: string;
+  category: string;
+  date: string;
+  image: string;
+  excerpt: string;
+  content: string;
 }
 
 export interface Playlist {
@@ -39,56 +77,44 @@ export interface Playlist {
   createdAt: string;
 }
 
-export interface DownloadTask {
-  id: string;
-  url: string;
-  status: 'pending' | 'analyzing' | 'downloading' | 'completed' | 'failed';
-  progress: number;
-  title?: string;
-  error?: string;
-}
-
-export interface SupportTicket {
-  id: string;
-  subject: string;
-  message: string;
-  status: 'open' | 'closed';
-  createdAt: string;
-  userEmail?: string;
-}
-
-export interface Session {
-  id: string;
-  device: string;
-  location: string;
-  lastActive: string;
-  current: boolean;
-}
-
 export interface AppSettings {
   notifications: boolean;
   inAppNotifications: boolean;
   language: string;
   theme: 'dark' | 'light';
-  downloadFormat: 'mp3' | 'mp4' | 'wav';
-  downloadQuality: '128' | '320' | 'lossless';
+  preferredFormat: 'mp3' | 'mp4';
+  preferredAudioQuality: '128' | '320';
+  preferredVideoQuality: '360' | '720' | '1080';
   autoMetadata: boolean;
 }
 
 export interface AdminAnalytics {
-  dailyLogins: { date: string; count: number }[];
-  dailyDownloads: { date: string; count: number }[];
-  mostDownloaded: { title: string; count: number }[];
-  mostSearched: { query: string; count: number }[];
-  totalLogins: number;
-  totalSystemEvents: number;
+  genreTrends: Record<string, number>;
+  activeUsers: number;
+  totalStorage: number;
+  bandwidthUsage: number;
+  totalDownloads: number;
+  totalFavorites: number;
+  growthRate: number;
+  dailyActiveUsers: number[];
+  recentEvents: { action: string; timestamp: string; user: string }[];
 }
 
 export interface AuditLog {
   id: string;
   userId: string;
+  username: string;
   action: string;
   timestamp: string;
   ip: string;
   location: string;
+  details?: string;
+}
+
+export interface DownloadTask {
+  id: string;
+  url: string;
+  title: string;
+  status: 'downloading' | 'completed' | 'failed';
+  progress: number;
 }

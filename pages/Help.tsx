@@ -1,9 +1,46 @@
 
 import React, { useState } from 'react';
 import { Icons } from '../constants';
+import { GoogleGenAI } from "@google/genai";
 
 const HelpPage: React.FC = () => {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [guideImageUrl, setGuideImageUrl] = useState<string | null>(null);
+
+  const generateGuide = async () => {
+    setIsGenerating(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+          parts: [
+            {
+              text: "A professional UI mockup of the 'Zetta Downloader' web application. The theme is dark mode with glowing blue accents. In the top-right header, show a clearly labeled amber-colored button with a shield icon that says 'Admin'. Next to it is a profile picture with a dropdown menu open, where a prominent gold button says 'Admin Terminal'. Use a glowing holographic arrow to point to these two admin access points.",
+            },
+          ],
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: "16:9"
+          }
+        },
+      });
+
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          const base64EncodeString = part.inlineData.data;
+          setGuideImageUrl(`data:image/png;base64,${base64EncodeString}`);
+          break;
+        }
+      }
+    } catch (error) {
+      console.error("Error generating UI guide:", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const faqs = [
     { q: "How do I download media from social links?", a: "Simply paste the URL in the downloader box, select your preferred format and quality, then click 'Download Now'. We support most major platforms including YouTube, SoundCloud, and Instagram." },
@@ -13,13 +50,60 @@ const HelpPage: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-12 animate-fade-in">
+    <div className="max-w-5xl mx-auto space-y-12 animate-fade-in pb-20">
       <div className="text-center">
-        <h1 className="text-5xl font-black text-white mb-4 tracking-tight">
+        <h1 className="text-5xl font-black text-white mb-4 tracking-tight uppercase italic">
           Help & <span className="text-blue-500">Support</span>
         </h1>
         <p className="text-slate-400 text-lg">Find answers to your questions and get assistance with Zetta Downloader.</p>
       </div>
+
+      {/* Visual Guide Generator Section */}
+      <section className="bg-slate-900 border border-amber-500/20 rounded-[40px] p-10 shadow-3xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-600/5 blur-[100px]"></div>
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
+          <div className="flex-1 space-y-6">
+            <h2 className="text-3xl font-black text-white italic uppercase tracking-tight">Visual <span className="text-amber-500">Protocol Guide</span></h2>
+            <p className="text-slate-400 leading-relaxed">
+              Need to find the Admin Command Center? Generate a real-time visual map of the interface. 
+              The <span className="text-amber-500 font-bold">Admin Button</span> is located in the top header, and the <span className="text-amber-500 font-bold">Admin Terminal</span> link is inside your profile dropdown.
+            </p>
+            <button 
+              onClick={generateGuide}
+              disabled={isGenerating}
+              className="bg-amber-600 hover:bg-amber-500 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-[2px] text-xs transition-all shadow-xl shadow-amber-600/20 flex items-center gap-3 active:scale-95 disabled:opacity-50"
+            >
+              {isGenerating ? (
+                <>
+                  <i className="fas fa-circle-notch animate-spin"></i>
+                  Generating UI Map...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-eye"></i>
+                  Generate Visual Guide
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="w-full md:w-[400px] aspect-video bg-slate-950 border-2 border-slate-800 rounded-3xl overflow-hidden flex items-center justify-center relative shadow-inner">
+            {guideImageUrl ? (
+              <img src={guideImageUrl} className="w-full h-full object-cover animate-fade-in" alt="UI Map" />
+            ) : (
+              <div className="text-center p-6">
+                <i className="fas fa-map-marked-alt text-5xl text-slate-800 mb-4"></i>
+                <p className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Protocol Map Offline</p>
+              </div>
+            )}
+            {isGenerating && (
+              <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center">
+                <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       <div className="relative group max-w-2xl mx-auto">
         <i className="fas fa-search absolute left-6 top-1/2 -translate-y-1/2 text-blue-500 text-xl"></i>

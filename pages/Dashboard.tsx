@@ -1,8 +1,8 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { MediaItem, User } from '../types';
-import { Icons } from '../constants';
+import React, { useMemo } from 'react';
+import { MediaItem, User, GenreType } from '../types';
+import SongCard from '../components/SongCard';
+import { trackPlayback } from '../services/mockApi';
 
 interface DashboardProps {
   user: User | null;
@@ -11,127 +11,88 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ user, library, onPlayTrack }) => {
-  const stats = [
-    { label: 'Total Downloads', value: library.length, icon: <Icons.Downloader />, color: 'bg-blue-600' },
-    { label: 'Favorites', value: library.filter(t => t.isFavorite).length, icon: <Icons.Favorite filled />, color: 'bg-red-600' },
-    { label: 'Storage Used', value: '1.2 GB', icon: <i className="fa-solid fa-hard-drive"></i>, color: 'bg-emerald-600' },
-    { label: 'Playlists', value: '4', icon: <Icons.Playlists />, color: 'bg-amber-600' },
-  ];
+  const GENRES: GenreType[] = ['CHILL', 'WORKOUT', 'LOVE', 'PARTY', 'TIKTOK SOUNDS', 'DJ PACKS', 'REELS'];
+
+  // Sorting genres by user affinity (highest engagement first)
+  const sortedGenres = useMemo(() => {
+    if (!user) return GENRES;
+    return [...GENRES].sort((a, b) => (user.affinity[b] || 0) - (user.affinity[a] || 0));
+  }, [user]);
+
+  const handlePlay = (track: MediaItem) => {
+    trackPlayback(track.genre);
+    onPlayTrack(track);
+  };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <header>
-        <h2 className="text-3xl font-bold text-white mb-2">Welcome back, {user?.username}!</h2>
-        <p className="text-slate-400">Here's what's happening with your media library today.</p>
-      </header>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl hover:border-slate-700 transition-all hover:shadow-xl hover:-translate-y-1">
-            <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center text-white mb-4 shadow-lg`}>
-              {stat.icon}
-            </div>
-            <p className="text-slate-500 text-sm font-medium">{stat.label}</p>
-            <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Activity */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-white">Recent Downloads</h3>
-            <Link to="/library" className="text-blue-400 hover:text-blue-300 text-sm font-semibold transition-colors">
-              View All
-            </Link>
-          </div>
-          <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-500 text-xs uppercase tracking-wider">
-                    <th className="px-6 py-4">Track</th>
-                    <th className="px-6 py-4">Artist</th>
-                    <th className="px-6 py-4">Format</th>
-                    <th className="px-6 py-4">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/50">
-                  {library.slice(0, 5).map((track) => (
-                    <tr key={track.id} className="hover:bg-slate-800/30 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <img src={track.thumbnail} className="w-10 h-10 rounded-lg object-cover" />
-                          <span className="text-sm font-semibold text-white">{track.title}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-400">{track.artist}</td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px] font-bold uppercase">{track.format}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <button 
-                          onClick={() => onPlayTrack(track)}
-                          className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-white hover:bg-blue-600 transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          <Icons.Play />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {library.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-10 text-center text-slate-600 italic">
-                        No recent activity recorded.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+    <div className="space-y-16 animate-fade-in pb-40">
+      {/* Dynamic Hero Section */}
+      <section className="bg-gradient-to-br from-blue-900/40 to-slate-950 border border-blue-500/20 rounded-[50px] p-12 relative overflow-hidden group">
+        <div className="relative z-10 max-w-2xl space-y-6">
+          <span className="bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[4px]">Neural Experience</span>
+          <h1 className="text-6xl md:text-8xl font-black text-white italic tracking-tighter uppercase leading-none">
+            {user?.username.split(' ')[0]}'s <br/><span className="text-blue-500">Pulse</span>
+          </h1>
+          <p className="text-slate-400 text-xl font-medium italic">
+            Dashboard reorganized based on your <span className="text-white font-bold">{sortedGenres[0]}</span> affinity.
+          </p>
         </div>
-
-        {/* Quick Actions / Featured */}
-        <div className="space-y-6">
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-3xl shadow-2xl relative overflow-hidden group">
-            <div className="relative z-10">
-              <h4 className="text-xl font-bold text-white mb-2">Smart Tools</h4>
-              <p className="text-blue-100/80 text-sm mb-4">Try our AI-powered audio tag editor and trim your clips instantly.</p>
-              <Link to="/tools" className="inline-block bg-white text-blue-600 px-6 py-2.5 rounded-xl text-sm font-black hover:shadow-2xl transition-all active:scale-95">
-                Try Tools
-              </Link>
-            </div>
-            <i className="fa-solid fa-wand-sparkles absolute -right-4 -bottom-4 text-8xl text-white/10 group-hover:scale-110 transition-transform duration-500"></i>
-          </div>
-
-          <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
-             <h4 className="font-bold text-white mb-4">Quick Links</h4>
-             <ul className="space-y-4">
-               <li>
-                <Link to="/help" className="flex items-center gap-3 text-sm text-slate-400 hover:text-white transition-colors group">
-                  <i className="fa-solid fa-circle-question w-5 text-blue-500 group-hover:scale-110 transition-transform"></i> 
-                  Help Center
-                </Link>
-               </li>
-               <li>
-                <Link to="/privacy" className="flex items-center gap-3 text-sm text-slate-400 hover:text-white transition-colors group">
-                  <i className="fa-solid fa-shield-halved w-5 text-blue-500 group-hover:scale-110 transition-transform"></i> 
-                  Privacy Policy
-                </Link>
-               </li>
-               <li>
-                <Link to="/tos" className="flex items-center gap-3 text-sm text-slate-400 hover:text-white transition-colors group">
-                  <i className="fa-solid fa-file-contract w-5 text-blue-500 group-hover:scale-110 transition-transform"></i> 
-                  Terms of Service
-                </Link>
-               </li>
-             </ul>
-          </div>
+        <div className="absolute top-0 right-0 w-1/2 h-full opacity-10 blur-3xl pointer-events-none">
+          <div className="w-full h-full bg-blue-600 rounded-full animate-pulse"></div>
         </div>
-      </div>
+      </section>
+
+      {/* Dynamic Genre Sections */}
+      {sortedGenres.map((genre, idx) => {
+        const items = library.filter(i => i.genre === genre && i.isVisible);
+        if (items.length === 0 && idx > 2) return null; // Hide empty sections if they aren't top affinity
+
+        return (
+          <section key={genre} className="space-y-8">
+            <div className="flex items-center justify-between border-b border-slate-800/50 pb-6">
+              <div className="flex items-center gap-6">
+                <div className={`w-12 h-12 flex items-center justify-center rounded-2xl text-xl ${idx === 0 ? 'bg-blue-600 shadow-[0_0_20px_#2563eb]' : 'bg-slate-800'}`}>
+                  <i className={`fas ${
+                    genre === 'CHILL' ? 'fa-couch' : 
+                    genre === 'WORKOUT' ? 'fa-dumbbell' : 
+                    genre === 'LOVE' ? 'fa-heart' : 
+                    genre === 'PARTY' ? 'fa-champagne-glasses' : 
+                    genre === 'TIKTOK SOUNDS' ? 'fa-music' : 
+                    genre === 'DJ PACKS' ? 'fa-compact-disc' : 'fa-video'
+                  }`}></i>
+                </div>
+                <div>
+                  <h3 className="text-3xl font-black text-white italic tracking-tight uppercase">{genre}</h3>
+                  <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mt-1">
+                    {user?.affinity[genre] || 0} Synapses • {items.length} Identity Nodes
+                  </p>
+                </div>
+              </div>
+              <button className="text-[10px] font-black text-blue-500 uppercase tracking-widest hover:text-white transition-colors">
+                Open Full Registry <i className="fa-solid fa-arrow-right-long ml-2"></i>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+              {items.length > 0 ? items.slice(0, 5).map(song => (
+                <SongCard 
+                  key={song.id} 
+                  song={song} 
+                  onPlay={() => handlePlay(song)}
+                  onDownload={() => {}} 
+                  onViewCover={() => {}}
+                  onViewGallery={() => {}}
+                  onViewDetails={() => {}}
+                />
+              )) : (
+                <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-800/50 rounded-[32px] opacity-30">
+                  <p className="font-black uppercase tracking-[5px] text-slate-500">No content nodes in {genre} registry</p>
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 };

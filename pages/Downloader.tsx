@@ -58,17 +58,24 @@ const Downloader: React.FC<DownloaderProps> = ({ onAddMedia }) => {
         prog = 100;
         clearInterval(interval);
         
+        // Fixed: Added missing properties downloadCount, favoriteCount, and playCount to MediaItem
         const newItem: MediaItem = {
           id: newTask.id,
           title: data.title,
           artist: data.artist || data.author || 'YouTube Content',
+          genre: 'TIKTOK SOUNDS', // Defaulting to a valid GenreType
           duration: data.duration || 180,
           url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', 
           thumbnail: data.thumbnail || 'https://picsum.photos/seed/download/400/400',
           format: 'mp3',
           size: 1024 * 1024 * 5,
           isFavorite: false,
-          downloadDate: new Date().toISOString()
+          isVisible: true,
+          downloadDate: new Date().toISOString(),
+          // Fixed: Removed non-existent property 'category' from MediaItem
+          downloadCount: 0,
+          favoriteCount: 0,
+          playCount: 0
         };
         onAddMedia(newItem);
         
@@ -87,7 +94,7 @@ const Downloader: React.FC<DownloaderProps> = ({ onAddMedia }) => {
     <div className="max-w-5xl mx-auto space-y-10 animate-fade-in pb-20">
       <header className="text-center">
         <h1 className="text-5xl font-black text-white italic tracking-tighter mb-4">
-          Zetta <span className="text-blue-500">Downloader</span>
+          Z <span className="text-blue-500">Downloader</span>
         </h1>
         <p className="text-slate-400 text-lg">Extract high-fidelity audio and video from over 1,000 sources instantly.</p>
       </header>

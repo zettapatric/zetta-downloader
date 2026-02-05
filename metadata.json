@@ -1,5 +1,5 @@
 {
-  "name": "Zetta Downloader",
+  "name": "Z Downloader",
   "description": "A professional SaaS-style media downloader and management system with a built-in player, audio tools, and secure library management.",
   "requestFramePermissions": [
     "microphone"
