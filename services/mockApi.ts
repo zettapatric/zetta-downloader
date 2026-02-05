@@ -6,6 +6,7 @@ const USERS_KEY = 'zetta_users_collection';
 const AUDIT_LOGS_KEY = 'zetta_audit_logs';
 const ARTISTS_KEY = 'zetta_artists_registry';
 const NEWS_KEY = 'zetta_news_registry';
+const FAST_TRACK_KEY = 'zetta_fast_track_queue';
 
 const DEFAULT_SETTINGS: AppSettings = {
   notifications: true,
@@ -72,6 +73,31 @@ export const getStoredLibrary = (): MediaItem[] => JSON.parse(localStorage.getIt
 export const getStoredArtists = (): Artist[] => JSON.parse(localStorage.getItem(ARTISTS_KEY) || '[]');
 export const getStoredNews = (): NewsArticle[] => JSON.parse(localStorage.getItem(NEWS_KEY) || '[]');
 
+// Fast Track (Queue) Management
+export interface FastTrackItem {
+  id: string;
+  title: string;
+  url: string;
+  timestamp: number;
+}
+
+export const getFastTrackItems = (): FastTrackItem[] => JSON.parse(localStorage.getItem(FAST_TRACK_KEY) || '[]');
+
+export const saveFastTrackItems = (items: FastTrackItem[]) => {
+  localStorage.setItem(FAST_TRACK_KEY, JSON.stringify(items));
+  window.dispatchEvent(new Event('zetta-fast-track-updated'));
+};
+
+export const addFastTrackItem = (item: FastTrackItem) => {
+  const current = getFastTrackItems();
+  saveFastTrackItems([item, ...current]);
+};
+
+export const removeFastTrackItem = (id: string) => {
+  const current = getFastTrackItems();
+  saveFastTrackItems(current.filter(i => i.id !== id));
+};
+
 export const logAudit = (userId: string, action: string, type: string = 'System') => {
   const users = getStoredUsers();
   const user = users.find(u => u.id === userId) || { username: userId };
@@ -120,7 +146,8 @@ export const deleteMediaItem = (id: string) => {
 
 export const addMediaItem = (item: MediaItem) => {
   const lib = getStoredLibrary();
-  localStorage.setItem(STORAGE_KEYS.LIBRARY, JSON.stringify([item, ...lib]));
+  const updated = [item, ...lib];
+  localStorage.setItem(STORAGE_KEYS.LIBRARY, JSON.stringify(updated));
   window.dispatchEvent(new Event('zetta-library-updated'));
   logAudit('Admin', `New Media Node Injected: ${item.title}`, 'Content');
 };
@@ -159,10 +186,11 @@ export const addArtist = (artist: Artist) => {
   logAudit('Admin', `New Creator Node Deployed: ${artist.name}`, 'Content');
 };
 
-export const deleteNews = (id: string) => {
+export const deleteNews = (id: string | number) => {
   const news = getStoredNews().filter(n => n.id !== id);
   localStorage.setItem(NEWS_KEY, JSON.stringify(news));
   window.dispatchEvent(new Event('zetta-news-updated'));
+  logAudit('Admin', `Broadcast node terminated: ${id}`, 'Signal');
 };
 
 export const saveNews = (news: NewsArticle[]) => {
@@ -193,6 +221,7 @@ export const getAdminAnalytics = (): AdminAnalytics => {
 };
 
 export const getAuditLogs = (): AuditLog[] => JSON.parse(localStorage.getItem(AUDIT_LOGS_KEY) || '[]');
+
 export const triggerDirectDownload = (item: MediaItem, format?: string) => {
   const lib = getStoredLibrary();
   const idx = lib.findIndex(i => i.id === item.id);
@@ -202,7 +231,9 @@ export const triggerDirectDownload = (item: MediaItem, format?: string) => {
     window.dispatchEvent(new Event('zetta-library-updated'));
   }
 };
+
 export const getStoredPlaylists = (): Playlist[] => JSON.parse(localStorage.getItem(STORAGE_KEYS.PLAYLISTS) || '[]');
+
 export const mockLogin = async (email: string, pass: string): Promise<User> => {
   const users = getStoredUsers();
   const user = users.find(u => u.email === email);
@@ -213,6 +244,7 @@ export const mockLogin = async (email: string, pass: string): Promise<User> => {
   localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'zetta-token-' + Date.now());
   return user;
 };
+
 export const mockRegister = async (email: string, pass: string, name: string): Promise<User> => {
   const users = getStoredUsers();
   const newUser: User = { id: 'u-' + Date.now(), username: name, email, role: UserRole.USER, avatar: `https://ui-avatars.com/api/?name=${name}`, createdAt: new Date().toISOString(), plan: 'free', status: 'active', affinity: {} };

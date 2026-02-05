@@ -1,13 +1,14 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   getAdminAnalytics, getAuditLogs, getStoredLibrary, getStoredUsers, getStoredArtists, getStoredNews,
   deleteUser, deleteMediaItem, deleteArtist, deleteNews, toggleUserStatus, addMediaItem, 
-  updateMediaItem, resetMediaStats, saveArtists, saveNews, saveUsers, logAudit, addArtist, addNews
+  resetMediaStats, logAudit, addArtist, addNews,
+  getFastTrackItems, saveFastTrackItems, addFastTrackItem, removeFastTrackItem, FastTrackItem
 } from '../services/mockApi';
-import { User, MediaItem, Artist, NewsArticle, AuditLog, AdminAnalytics, UserRole, GenreType } from '../types';
+import { User, MediaItem, Artist, NewsArticle, AuditLog, AdminAnalytics, GenreType } from '../types';
 
-type TabType = 'overview' | 'users' | 'media' | 'creators' | 'broadcast' | 'telemetry' | 'system';
+type TabType = 'overview' | 'users' | 'media' | 'creators' | 'broadcast' | 'telemetry' | 'fasttrack';
 
 const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -17,6 +18,7 @@ const AdminPanel: React.FC = () => {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [fastTrack, setFastTrack] = useState<FastTrackItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -25,9 +27,13 @@ const AdminPanel: React.FC = () => {
   const [formLoading, setFormLoading] = useState(false);
   
   // Controlled Form Inputs
-  const [songForm, setSongForm] = useState({ title: '', artist: '', genre: 'CHILL' as GenreType, url: '' });
+  const [songForm, setSongForm] = useState({ title: '', artist: '', genre: 'CHILL' as GenreType, url: '', uploadType: 'url' as 'url' | 'file' });
   const [artistForm, setArtistForm] = useState({ name: '', genre: '', bio: '', image: '' });
   const [newsForm, setNewsForm] = useState({ title: '', category: '', excerpt: '', content: '' });
+  const [fastTrackUrl, setFastTrackUrl] = useState('');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fastTrackFileInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = () => {
     setIsRefreshing(true);
@@ -38,13 +44,14 @@ const AdminPanel: React.FC = () => {
       setArtists(getStoredArtists());
       setNews(getStoredNews());
       setLogs(getAuditLogs());
+      setFastTrack(getFastTrackItems());
       setIsRefreshing(false);
     }, 300);
   };
 
   useEffect(() => {
     refresh();
-    const events = ['zetta-library-updated', 'zetta-logs-updated', 'zetta-user-updated', 'zetta-artists-updated', 'zetta-news-updated'];
+    const events = ['zetta-library-updated', 'zetta-logs-updated', 'zetta-user-updated', 'zetta-artists-updated', 'zetta-news-updated', 'zetta-fast-track-updated'];
     events.forEach(e => window.addEventListener(e, refresh));
     return () => events.forEach(e => window.removeEventListener(e, refresh));
   }, []);
@@ -56,9 +63,10 @@ const AdminPanel: React.FC = () => {
       case 'media': return library.filter(s => s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q));
       case 'creators': return artists.filter(a => a.name.toLowerCase().includes(q));
       case 'broadcast': return news.filter(n => n.title.toLowerCase().includes(q));
+      case 'fasttrack': return fastTrack.filter(f => f.title.toLowerCase().includes(q));
       default: return [];
     }
-  }, [searchTerm, activeTab, users, library, artists, news]);
+  }, [searchTerm, activeTab, users, library, artists, news, fastTrack]);
 
   const handleExportCSV = (data: any[], filename: string) => {
     if (!data.length) return;
@@ -72,10 +80,18 @@ const AdminPanel: React.FC = () => {
 
   const handleSongSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!songForm.url && songForm.uploadType === 'url') {
+      alert("Please provide an audio source URL.");
+      return;
+    }
+    
     setFormLoading(true);
     const newItem: MediaItem = {
       id: 's-' + Date.now(),
-      ...songForm,
+      title: songForm.title,
+      artist: songForm.artist,
+      genre: songForm.genre,
+      url: songForm.url,
       thumbnail: `https://picsum.photos/seed/${Date.now()}/400/400`,
       duration: 180,
       format: 'mp3',
@@ -88,9 +104,60 @@ const AdminPanel: React.FC = () => {
       playCount: 0
     };
     addMediaItem(newItem);
-    setSongForm({ title: '', artist: '', genre: 'CHILL', url: '' });
+    setSongForm({ title: '', artist: '', genre: 'CHILL', url: '', uploadType: 'url' });
     setShowModal(null);
     setFormLoading(false);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setSongForm({ ...songForm, url, title: songForm.title || file.name.split('.')[0] });
+    }
+  };
+
+  // Fast Track Handlers
+  const handleFastTrackBulkUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    // Fixed: Explicitly typed 'file' as 'File' to avoid 'unknown' type errors when accessing properties like 'type' and 'name'.
+    Array.from(files).forEach((file: File) => {
+      if (file.type.startsWith('audio/')) {
+        const item: FastTrackItem = {
+          id: 'ft-' + Math.random().toString(36).substr(2, 9),
+          title: file.name,
+          url: URL.createObjectURL(file),
+          timestamp: Date.now()
+        };
+        addFastTrackItem(item);
+      }
+    });
+    if (fastTrackFileInputRef.current) fastTrackFileInputRef.current.value = '';
+  };
+
+  const handleFastTrackUrlAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fastTrackUrl.trim()) return;
+    
+    const item: FastTrackItem = {
+      id: 'ft-' + Math.random().toString(36).substr(2, 9),
+      title: fastTrackUrl.split('/').pop()?.split('?')[0] || 'Remote Stream',
+      url: fastTrackUrl,
+      timestamp: Date.now()
+    };
+    addFastTrackItem(item);
+    setFastTrackUrl('');
+  };
+
+  const handleFastTrackDownload = (item: FastTrackItem) => {
+    // We don't prevent default, the link is a download link
+    // But we trigger removal after a short delay so the browser can start the download
+    setTimeout(() => {
+      removeFastTrackItem(item.id);
+      logAudit('Admin', `Fast-Track Node Extracted: ${item.title}`, 'Deployment');
+    }, 500);
   };
 
   const handleArtistSubmit = (e: React.FormEvent) => {
@@ -204,7 +271,7 @@ const AdminPanel: React.FC = () => {
   const renderUsers = () => (
     <div className="bg-slate-900/20 border border-slate-800 rounded-2xl p-4 animate-fade-in">
       {renderActionHeader("Identity Terminal")}
-      <div className="overflow-x-auto no-scrollbar text-center">
+      <div className="overflow-x-auto no-scrollbar">
         <table className="w-full text-left text-[10px]">
           <thead className="bg-slate-950/60 border-b border-slate-800 text-slate-600 uppercase font-black tracking-[3px]">
             <tr><th className="px-4 py-3">Node Identity</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Last Sync</th><th className="px-4 py-3 text-right">Governance</th></tr>
@@ -240,9 +307,10 @@ const AdminPanel: React.FC = () => {
           <div key={s.id} className="bg-slate-900 border border-slate-800 p-3 rounded-xl group hover:border-emerald-500/30 transition-all flex flex-col relative overflow-hidden shadow-sm">
             <div className="relative aspect-square mb-3 overflow-hidden rounded-lg">
               <img src={s.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                 <button onClick={() => resetMediaStats(s.id)} className="w-7 h-7 bg-white text-slate-950 rounded-lg shadow-xl active:scale-90 transition-all"><i className="fa-solid fa-rotate text-[10px]"></i></button>
-                 <button onClick={() => deleteMediaItem(s.id)} className="w-7 h-7 bg-red-600 text-white rounded-lg shadow-xl active:scale-90 transition-all"><i className="fa-solid fa-trash text-[10px]"></i></button>
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                 <button onClick={() => { const win = window.open(s.url, '_blank'); win?.focus(); }} className="w-7 h-7 bg-white text-slate-950 rounded-lg shadow-xl active:scale-90 transition-all" title="Preview Audio"><i className="fa-solid fa-play text-[10px]"></i></button>
+                 <button onClick={() => resetMediaStats(s.id)} className="w-7 h-7 bg-white text-slate-950 rounded-lg shadow-xl active:scale-90 transition-all" title="Reset Stats"><i className="fa-solid fa-rotate text-[10px]"></i></button>
+                 <button onClick={() => deleteMediaItem(s.id)} className="w-7 h-7 bg-red-600 text-white rounded-lg shadow-xl active:scale-90 transition-all" title="Delete"><i className="fa-solid fa-trash text-[10px]"></i></button>
               </div>
             </div>
             <h4 className="text-[10px] font-black text-white truncate uppercase italic mb-0.5">{s.title}</h4>
@@ -326,6 +394,83 @@ const AdminPanel: React.FC = () => {
     </div>
   );
 
+  // Added missing renderFastTrack function to handle fast-track deployment queue
+  const renderFastTrack = () => (
+    <div className="bg-slate-900/20 border border-slate-800 rounded-2xl p-4 animate-fade-in">
+      {renderActionHeader("Fast-Track Deployment Queue")}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="bg-slate-950/40 p-5 rounded-xl border border-slate-800">
+          <p className="text-[9px] font-black text-slate-500 uppercase tracking-[3px] mb-4">Remote Uplink (URL)</p>
+          <form onSubmit={handleFastTrackUrlAdd} className="flex gap-2">
+            <input 
+              type="text" 
+              value={fastTrackUrl}
+              onChange={e => setFastTrackUrl(e.target.value)}
+              placeholder="Paste direct audio URL..."
+              className="flex-1 bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-[10px] text-white outline-none focus:border-blue-500"
+            />
+            <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all">Add</button>
+          </form>
+        </div>
+        
+        <div className="bg-slate-950/40 p-5 rounded-xl border border-slate-800 flex flex-col items-center justify-center">
+          <p className="text-[9px] font-black text-slate-500 uppercase tracking-[3px] mb-4">Bulk Disk Extraction</p>
+          <button 
+            onClick={() => fastTrackFileInputRef.current?.click()}
+            className="w-full bg-slate-800 hover:bg-white hover:text-slate-950 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border border-white/5"
+          >
+            Browse Local Nodes
+          </button>
+          <input 
+            type="file" 
+            ref={fastTrackFileInputRef} 
+            onChange={handleFastTrackBulkUpload} 
+            className="hidden" 
+            multiple 
+            accept="audio/*" 
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2 max-h-[400px] overflow-y-auto no-scrollbar pr-1">
+        {(filteredItems as FastTrackItem[]).map(item => (
+          <div key={item.id} className="bg-slate-900 border border-slate-800 p-3 rounded-xl flex items-center gap-4 group hover:bg-slate-800/40 transition-all">
+            <div className="w-8 h-8 bg-blue-600/10 rounded-lg flex items-center justify-center text-blue-500 text-xs">
+              <i className="fa-solid fa-cloud-arrow-down"></i>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-[10px] font-black text-white truncate uppercase italic">{item.title}</h4>
+              <p className="text-[8px] text-slate-600 font-mono truncate">{item.url}</p>
+            </div>
+            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+              <a 
+                href={item.url} 
+                download={item.title} 
+                onClick={() => handleFastTrackDownload(item)}
+                className="w-8 h-8 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-500 hover:text-white rounded-lg flex items-center justify-center transition-all"
+              >
+                <i className="fa-solid fa-download text-[10px]"></i>
+              </a>
+              <button 
+                onClick={() => removeFastTrackItem(item.id)}
+                className="w-8 h-8 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-lg transition-all"
+              >
+                <i className="fa-solid fa-trash-can text-[10px]"></i>
+              </button>
+            </div>
+          </div>
+        ))}
+        {filteredItems.length === 0 && (
+          <div className="py-20 text-center opacity-20">
+            <i className="fa-solid fa-microchip text-4xl mb-3"></i>
+            <p className="text-[9px] font-black uppercase tracking-widest">Fast-Track Queue Empty</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   const renderModal = () => {
     if (!showModal) return null;
     return (
@@ -347,6 +492,27 @@ const AdminPanel: React.FC = () => {
                    <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">Artist Cluster</label>
                    <input required value={songForm.artist} onChange={e => setSongForm({...songForm, artist: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-xs text-white outline-none focus:border-blue-600" placeholder="Bruce Melodie" />
                 </div>
+                <div className="space-y-1">
+                  <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">Source Protocol</label>
+                  <div className="flex bg-slate-950 border border-slate-800 rounded-xl p-1 gap-1">
+                    <button type="button" onClick={() => setSongForm({...songForm, uploadType: 'url'})} className={`flex-1 py-1.5 text-[9px] font-black uppercase rounded-lg transition-all ${songForm.uploadType === 'url' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-white'}`}>Audio URL</button>
+                    <button type="button" onClick={() => { setSongForm({...songForm, uploadType: 'file'}); fileInputRef.current?.click(); }} className={`flex-1 py-1.5 text-[9px] font-black uppercase rounded-lg transition-all ${songForm.uploadType === 'file' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-white'}`}>Local Disk</button>
+                  </div>
+                </div>
+
+                {songForm.uploadType === 'url' ? (
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">Audio Source URL (.mp3, .wav)</label>
+                    <input required value={songForm.url} onChange={e => setSongForm({...songForm, url: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-xs text-white outline-none focus:border-blue-600 font-mono" placeholder="https://example.com/audio.mp3" />
+                  </div>
+                ) : (
+                  <div className="p-4 bg-slate-950 border-2 border-dashed border-slate-800 rounded-xl text-center">
+                    <p className="text-[10px] text-slate-500 font-bold uppercase mb-2">{songForm.url ? 'File Synced: Ready' : 'Choose local audio node'}</p>
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="text-[10px] bg-blue-600/10 text-blue-500 px-4 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-black uppercase">Browse Files</button>
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="audio/*" />
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                    <div className="space-y-1">
                       <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">Genre Registry</label>
@@ -355,10 +521,20 @@ const AdminPanel: React.FC = () => {
                       </select>
                    </div>
                    <div className="space-y-1">
-                      <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">Source URL</label>
-                      <input required value={songForm.url} onChange={e => setSongForm({...songForm, url: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-xs text-white outline-none focus:border-blue-600" placeholder="https://..." />
+                      <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">Download Permission</label>
+                      <div className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-[10px] text-green-500 font-black uppercase tracking-widest flex items-center gap-2">
+                        <i className="fa-solid fa-circle-check"></i> Enabled
+                      </div>
                    </div>
                 </div>
+                
+                {songForm.url && (
+                  <div className="pt-2">
+                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2">Sync Preview</p>
+                    <audio controls src={songForm.url} className="w-full h-8 opacity-80" />
+                  </div>
+                )}
+
                 <button type="submit" disabled={formLoading} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-[5px] transition-all active:scale-[0.98] mt-4 disabled:opacity-50">
                    {formLoading ? 'Syncing...' : 'Initialize Sync'}
                 </button>
@@ -430,6 +606,7 @@ const AdminPanel: React.FC = () => {
           {renderTabBtn('creators', 'Creators')}
           {renderTabBtn('broadcast', 'Signal')}
           {renderTabBtn('telemetry', 'Telemetry')}
+          {renderTabBtn('fasttrack', 'Fast-Track')}
         </nav>
       </header>
 
@@ -440,6 +617,7 @@ const AdminPanel: React.FC = () => {
         {activeTab === 'creators' && renderCreators()}
         {activeTab === 'broadcast' && renderBroadcast()}
         {activeTab === 'telemetry' && renderTelemetry()}
+        {activeTab === 'fasttrack' && renderFastTrack()}
       </main>
 
       {renderModal()}
